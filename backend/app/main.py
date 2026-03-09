@@ -46,3 +46,4 @@ app.include_router(graphics.router, prefix="/api", tags=["graphics"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Medical Repo Summary API"}
+# Trigger reload
