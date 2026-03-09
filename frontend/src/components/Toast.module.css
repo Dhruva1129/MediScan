@@ -1,0 +1,37 @@
+.toast {
+  position: fixed;
+  bottom: 1.75rem;
+  right: 1.75rem;
+  padding: 0.8rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp 0.3s ease;
+  max-width: 320px;
+}
+
+.default {
+  background: var(--ink);
+  color: white;
+}
+
+.success {
+  background: var(--teal);
+  color: white;
+}
+
+.error {
+  background: var(--rose);
+  color: white;
+}
+
+.icon {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
