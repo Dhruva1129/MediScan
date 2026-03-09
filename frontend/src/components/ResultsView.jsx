@@ -79,65 +79,41 @@ export function ResultsView({ summaryId, onBack, onChat, onGraphics, onGraphicsD
     const downloadPdf = () => {
         const src = translated || data
         const langNote = translatedLang ? ` (${translatedLang})` : ''
-        const { jsPDF } = window.jspdf || {}
 
-        // Dynamically import jsPDF (bundled with html2pdf.js)
-        import('jspdf').then(({ jsPDF: JPDF }) => {
-            const doc = new JPDF({ unit: 'mm', format: 'a4' })
-            const pageW = doc.internal.pageSize.getWidth()
-            const pageH = doc.internal.pageSize.getHeight()
-            const marginL = 20
-            const marginR = 20
-            const usableW = pageW - marginL - marginR
-            let y = 20
+        // Dynamically import html2pdf.js
+        import('html2pdf.js').then((html2pdfModule) => {
+            const html2pdf = html2pdfModule.default || html2pdfModule
 
-            const checkPage = (needed = 10) => {
-                if (y + needed > pageH - 20) { doc.addPage(); y = 20 }
-            }
+            // Create an invisible container for the PDF content
+            const container = document.createElement('div')
+            container.style.padding = '40px'
+            container.style.fontFamily = 'system-ui, -apple-system, sans-serif'
+            container.style.color = '#0c0f1a'
 
-            // ── Header ──
-            doc.setFillColor(42, 122, 111)
-            doc.rect(marginL, y, usableW, 1, 'F')
-            y += 5
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(18)
-            doc.setTextColor(42, 122, 111)
-            doc.text(`MediScan Analysis${langNote}`, marginL, y)
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(9)
-            doc.setTextColor(130, 130, 130)
             const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-            doc.text(`Report ID: ${summaryId}  |  ${dateStr}`, pageW - marginR, y, { align: 'right' })
-            y += 4
-            doc.setFillColor(42, 122, 111)
-            doc.rect(marginL, y, usableW, 0.5, 'F')
-            y += 10
 
-            // ── Helper to strip **bold** markers and write text ──
-            const writeText = (text) => {
-                if (!text) {
-                    doc.setFont('helvetica', 'italic')
-                    doc.setFontSize(10)
-                    doc.setTextColor(153, 153, 153)
-                    doc.text('No data available.', marginL, y)
-                    y += 6
-                    return
-                }
-                doc.setFontSize(10)
-                doc.setTextColor(12, 15, 26)
-                // Strip bold markers for PDF (jsPDF can't do inline bold/normal mix easily)
-                const clean = text.replace(/\*\*(.+?)\*\*/g, '$1')
-                const lines = doc.splitTextToSize(clean, usableW)
-                for (const line of lines) {
-                    checkPage(5)
-                    doc.setFont('helvetica', 'normal')
-                    doc.text(line, marginL, y)
-                    y += 5
-                }
-                y += 3
+            // Render MD helper
+            const renderHtml = (text) => {
+                if (!text) return '<p style="color: #999; font-style: italic;">No data available.</p>'
+                return text.split('\n').map(line => {
+                    const parts = line.split(/\*\*(.+?)\*\*/g)
+                    const htmlLine = parts.map((part, pi) =>
+                        pi % 2 === 1 ? `<strong>${part}</strong>` : part
+                    ).join('')
+                    return `<div style="margin-bottom: 8px; line-height: 1.5;">${htmlLine}</div>`
+                }).join('')
             }
 
-            // ── Sections ──
+            container.innerHTML = `
+                <div style="border-bottom: 2px solid #2a7a6f; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <h1 style="color: #2a7a6f; margin: 0; font-size: 24px;">MediScan Analysis${langNote}</h1>
+                    <div style="color: #828282; font-size: 12px; text-align: right;">
+                        Report ID: ${summaryId}<br/>
+                        ${dateStr}
+                    </div>
+                </div>
+            `
+
             const sections = [
                 { title: '1. Summary', content: src.summary },
                 { title: '2. Risk Analysis', content: src.risk },
@@ -145,34 +121,37 @@ export function ResultsView({ summaryId, onBack, onChat, onGraphics, onGraphicsD
                 { title: '4. Questions to Ask Your Doctor', content: src.doctor },
             ]
 
-            for (const sec of sections) {
-                checkPage(15)
-                doc.setFont('helvetica', 'bold')
-                doc.setFontSize(12)
-                doc.setTextColor(42, 122, 111)
-                doc.text(sec.title, marginL, y)
-                y += 2
-                doc.setDrawColor(232, 229, 223)
-                doc.line(marginL, y, pageW - marginR, y)
-                y += 6
-                writeText(sec.content)
-                y += 4
+            sections.forEach(sec => {
+                const secDiv = document.createElement('div')
+                secDiv.style.marginBottom = '20px'
+                secDiv.style.pageBreakInside = 'avoid'
+                secDiv.innerHTML = `
+                    <h2 style="color: #2a7a6f; font-size: 18px; border-bottom: 1px solid #e8e5df; padding-bottom: 5px; margin-bottom: 10px;">${sec.title}</h2>
+                    <div style="font-size: 14px;">${renderHtml(sec.content)}</div>
+                `
+                container.appendChild(secDiv)
+            })
+
+            // Footer
+            const footer = document.createElement('div')
+            footer.style.marginTop = '40px'
+            footer.style.paddingTop = '10px'
+            footer.style.borderTop = '1px solid #e8e5df'
+            footer.style.color = '#aaa'
+            footer.style.fontSize = '12px'
+            footer.style.fontStyle = 'italic'
+            footer.innerHTML = 'This report is generated by MediScan AI and is for informational purposes only.<br/>It is not a substitute for professional medical advice, diagnosis, or treatment.'
+            container.appendChild(footer)
+
+            const opt = {
+                margin: 10,
+                filename: `MediScan_Report_${summaryId}${langNote.replace(/[() ]/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }
 
-            // ── Footer ──
-            checkPage(15)
-            y = pageH - 15
-            doc.setDrawColor(232, 229, 223)
-            doc.line(marginL, y, pageW - marginR, y)
-            y += 4
-            doc.setFont('helvetica', 'italic')
-            doc.setFontSize(8)
-            doc.setTextColor(170, 170, 170)
-            doc.text('This report is generated by MediScan AI and is for informational purposes only.', marginL, y)
-            y += 3.5
-            doc.text('It is not a substitute for professional medical advice, diagnosis, or treatment.', marginL, y)
-
-            doc.save(`MediScan_Report_${summaryId}${langNote.replace(/[() ]/g, '_')}.pdf`)
+            html2pdf().set(opt).from(container).save()
         })
     }
 
