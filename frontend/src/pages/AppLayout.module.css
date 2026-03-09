@@ -220,6 +220,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -557,6 +558,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -1465,11 +1467,37 @@
 }
 
 .gfxCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  animation: fadeSlideIn 0.4s ease both;
+  background: linear-gradient(145deg, #ffffff, #fafafa);
+  border: 1px solid rgba(42, 122, 111, 0.15);
+  border-radius: 24px;
+  padding: 1.8rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 2px 0 0 rgba(255, 255, 255, 0.8);
+  animation: fadeSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.gfxCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--teal-light), var(--teal));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gfxCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(42, 122, 111, 0.08);
+  border-color: rgba(42, 122, 111, 0.25);
+}
+
+.gfxCard:hover::before {
+  opacity: 1;
 }
 
 /* ── Graphics Dashboard ── */
@@ -1717,16 +1745,18 @@
 }
 
 .barTrack {
-  height: 10px;
-  background: var(--cream);
+  height: 12px;
+  background: var(--surface-alt, #f0f0f0);
   border-radius: 100px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
 .barFill {
   height: 100%;
   border-radius: 100px;
-  animation: barGrow 0.8s ease-out both;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: barGrow 1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes barGrow {
@@ -1750,60 +1780,101 @@
 
 .donutSvg {
   margin-bottom: 1rem;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
 }
 
 .donutSegAnim {
   animation: donutFadeIn 0.5s ease both;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  transform-origin: center;
+}
+
+.donutSegAnim:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 8px currentColor);
+  cursor: pointer;
 }
 
 @keyframes donutFadeIn {
   from {
     opacity: 0;
+    transform: scale(0.9);
   }
 
   to {
     opacity: 1;
+    transform: scale(1);
   }
 }
 
 .donutLegend {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
   width: 100%;
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
+  gap: 0.6rem;
+  font-size: 0.82rem;
   color: var(--ink);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.legendItem:hover {
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .legendDot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .gfxMetricsCard {
   overflow-y: auto;
   max-height: 380px;
+  padding-right: 8px;
+}
+
+.gfxMetricsCard::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gfxMetricsCard::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gfxMetricsCard::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 .metricsGrid {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.8rem;
 }
 
 .metricItem {
-  padding: 0.75rem;
-  background: var(--cream);
-  border-radius: var(--radius-md);
-  animation: fadeSlideIn 0.35s ease both;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  animation: fadeSlideIn 0.4s ease both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metricItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .metricHeader {
@@ -1852,24 +1923,26 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.8rem;
 }
 
 .recItem {
-  padding: 0.65rem 0.9rem;
-  background: var(--teal-pale);
+  padding: 1rem 1.2rem;
+  background: #ffffff;
   border: 1px solid rgba(42, 122, 111, 0.12);
-  border-radius: var(--radius-md);
-  font-size: 0.82rem;
+  border-left: 4px solid var(--teal);
+  border-radius: 12px;
+  font-size: 0.85rem;
   color: var(--ink);
-  line-height: 1.5;
-  animation: fadeSlideIn 0.35s ease both;
+  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  animation: fadeSlideIn 0.4s ease both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.recItem::before {
-  content: '✦ ';
-  color: var(--teal);
-  font-weight: 600;
+.recItem:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(42, 122, 111, 0.08);
 }
 
 .chatMessages {

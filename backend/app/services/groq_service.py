@@ -1,6 +1,7 @@
 import os
 import aiohttp
 import base64
+import fitz
 from fastapi import UploadFile
 from dotenv import load_dotenv
 from app.prompts.medical_report_prompt import build_medical_report_prompt, risk_prompt, next_steps_prompt, ask_doctor_prompt
@@ -13,17 +14,36 @@ MODEL = os.getenv("GROQ_MODEL")
 
 async def get_groq_response(image: UploadFile, prompt: str):
     img_bytes = await image.read()
-    img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+    
+    content = [{"type": "text", "text": prompt}]
+
+    if image.filename.lower().endswith(".pdf") or image.content_type == "application/pdf":
+        doc = fitz.open(stream=img_bytes, filetype="pdf")
+        # Limit to first 3 pages to avoid payload being too large
+        num_pages = min(len(doc), 3)
+        for i in range(num_pages):
+            page = doc.load_page(i)
+            # Render at higher resolution (~150 DPI)
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            page_bytes = pix.tobytes("jpeg")
+            page_b64 = base64.b64encode(page_bytes).decode("utf-8")
+            content.append({
+                "type": "image_url", 
+                "image_url": {"url": f"data:image/jpeg;base64,{page_b64}"}
+            })
+    else:
+        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+        content.append({
+            "type": "image_url", 
+            "image_url": {"url": f"data:{image.content_type};base64,{img_b64}"}
+        })
 
     payload = {
         "model": MODEL,
         "messages": [
             {
                 "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:{image.content_type};base64,{img_b64}"}}
-                ]
+                "content": content
             }
         ]
     }
