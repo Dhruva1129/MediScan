@@ -17,6 +17,13 @@ import { ResultsView } from '../components/ResultsView'
 import { ChatView } from '../components/ChatView'
 import { GraphicsView } from '../components/GraphicsView'
 import { GraphicsDashboard } from '../components/GraphicsDashboard'
+import { MainDashboard } from '../components/MainDashboard'
+import { PatientDashboard } from '../components/PatientDashboard'
+import { PatientForm } from '../components/PatientForm'
+import { PatientResultView } from '../components/PatientResultView'
+import { HospitalForm } from '../components/HospitalForm'
+import { HospitalRecommendationsView } from '../components/HospitalRecommendationsView'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
 // ── AppLayout (root) ─────────────────────────────────────────────────
 export default function AppLayout() {
@@ -24,7 +31,7 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const { toast, showToast } = useToast()
 
-  const [view, setView] = useSessionState('app_view', 'dashboard')
+  const [view, setView] = useSessionState('app_view', 'main-dashboard')
   const [viewHistory, setViewHistory] = useSessionState('app_viewHistory', [])
   const [summaries, setSummaries] = useState([])
   const [currentId, setCurrentId] = useSessionState('app_currentId', null)
@@ -34,6 +41,11 @@ export default function AppLayout() {
   const [graphicsPatient, setGraphicsPatient] = useSessionState('app_graphicsPatient', null)
   const [graphicsDashReports, setGraphicsDashReports] = useSessionState('app_graphicsDashReports', [])
 
+  const [patientResultData, setPatientResultData] = useSessionState('app_patientResultData', null)
+  const [hospitalResultData, setHospitalResultData] = useSessionState('app_hospitalResultData', null)
+  const [hospitalFormData, setHospitalFormData] = useSessionState('app_hospitalFormData', null)
+  const [patientHistory, setPatientHistory] = useState([])
+
   const goTo = (v) => {
     setViewHistory(h => [...h, view])
     setView(v)
@@ -42,7 +54,7 @@ export default function AppLayout() {
   const goBack = () => {
     setViewHistory(h => {
       const prev = [...h]
-      const dest = prev.pop() || 'dashboard'
+      const dest = prev.pop() || 'main-dashboard'
       setView(dest)
       return prev
     })
@@ -51,12 +63,20 @@ export default function AppLayout() {
   useEffect(() => {
     if (!user) { navigate('/auth'); return }
     loadSummaries()
+    loadPatientHistory()
   }, [user])
 
   const loadSummaries = async () => {
     try {
       const data = await api.getUserSummaries(user.id)
       setSummaries(data)
+    } catch (e) { console.error(e) }
+  }
+
+  const loadPatientHistory = async () => {
+    try {
+      const data = await api.getPatientHistory(user.id)
+      setPatientHistory(data)
     } catch (e) { console.error(e) }
   }
 
@@ -75,6 +95,19 @@ export default function AppLayout() {
     } catch { showToast('Failed to delete', 'error') }
   }
 
+  const handleDeletePatientHistory = async (id) => {
+    if (!window.confirm('Delete this patient analysis?')) return
+    try {
+      await api.deletePatientHistory(id)
+      setPatientHistory(h => h.filter(x => x.id !== id))
+      if (patientResultData?.id === id) setPatientResultData(null)
+      showToast('Patient analysis deleted', 'success')
+      if (view === 'patient-result' && patientResultData?.id === id) {
+        goTo('patient-dashboard')
+      }
+    } catch { showToast('Failed to delete', 'error') }
+  }
+
   const handleAnalysisComplete = useCallback(async (data) => {
     setCurrentId(data.summary_id)
     await loadSummaries()
@@ -88,7 +121,13 @@ export default function AppLayout() {
   }
 
   const PAGE_TITLES = {
-    dashboard: 'Dashboard',
+    'main-dashboard': 'Hub Dashboard',
+    'patient-dashboard': 'Patient Services',
+    'patient-form': 'Analyze Condition',
+    'patient-result': 'Analysis Result',
+    'hospital-form': 'Find Hospitals',
+    'hospital-recommendations': 'Hospital Recommendations',
+    dashboard: 'Report Analyzer',
     upload: 'Analyze Report',
     results: 'Analysis Results',
     chat: 'Chat',
@@ -105,6 +144,13 @@ export default function AppLayout() {
         currentId={currentId}
         onSelectSummary={handleSelectSummary}
         onDeleteSummary={handleDeleteSummary}
+        patientHistory={patientHistory}
+        currentPatientId={patientResultData?.id}
+        onSelectHistory={(historyItem) => {
+          setPatientResultData(historyItem);
+          goTo('patient-result');
+        }}
+        onDeletePatientHistory={handleDeletePatientHistory}
         user={user}
         onLogout={handleLogout}
         onNewAnalysis={() => setView('upload')}
@@ -130,90 +176,145 @@ export default function AppLayout() {
                 Back
               </button>
             )}
-            <button className={styles.newBtn} onClick={() => goTo('upload')}>
-              + New Analysis
-            </button>
           </div>
         </header>
 
         {/* Views */}
         <div className={styles.contentArea}>
-          {view === 'dashboard' && (
-            <Dashboard
-              summaries={summaries}
-              user={user}
-              setView={goTo}
-              onSelectSummary={handleSelectSummary}
-            />
-          )}
-          {view === 'upload' && (
-            <UploadView
-              user={user}
-              onAnalysisComplete={handleAnalysisComplete}
-              showToast={showToast}
-            />
-          )}
-          {view === 'results' && currentId && (
-            <ResultsView
-              summaryId={currentId}
-              onBack={() => goTo('upload')}
-              onChat={() => { setChatSummaryId(currentId); goTo('chat') }}
-              onGraphics={(chartData, patientInfo, updatedReports) => {
-                setGraphicsData(chartData)
-                setGraphicsPatient(patientInfo)
-                if (updatedReports) setGraphicsDashReports(updatedReports)
-                goTo('graphics')
-              }}
-              onGraphicsDashboard={(reports) => {
-                setGraphicsDashReports(reports)
-                goTo('graphics-dashboard')
-              }}
-              user={user}
-            />
-          )}
-          {view === 'results' && !currentId && (
-            <div className={styles.viewInner}>
-              <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📋</div>
-                <div className={styles.emptyLabel}>No report selected</div>
-                <div className={styles.emptyDesc}>Select a report from the sidebar or analyze a new one.</div>
+          <ErrorBoundary>
+            {view === 'main-dashboard' && (
+              <MainDashboard user={user} setView={goTo} />
+            )}
+            {view === 'patient-dashboard' && (
+              <PatientDashboard
+                setView={goTo}
+                patientHistory={patientHistory}
+                user={user}
+                onSelectHistory={(historyItem) => {
+                  setPatientResultData(historyItem);
+                  goTo('patient-result');
+                }}
+              />
+            )}
+            {view === 'patient-form' && (
+              <PatientForm
+                user={user}
+                onComplete={(data) => {
+                  setPatientResultData(data)
+                  loadPatientHistory()
+                  goTo('patient-result')
+                }}
+                onBack={goBack}
+                showToast={showToast}
+              />
+            )}
+            {view === 'patient-result' && (
+              <PatientResultView
+                resultData={patientResultData}
+                onBack={goBack}
+                onFindHospitals={(loc, docType) => {
+                  setHospitalFormData({ location: loc, doctor_type: docType })
+                  goTo('hospital-form')
+                }}
+              />
+            )}
+            {view === 'hospital-form' && (
+              <HospitalForm
+                user={user}
+                initialData={hospitalFormData}
+                onComplete={(data) => {
+                  setHospitalResultData(data)
+                  goTo('hospital-recommendations')
+                }}
+                onBack={goBack}
+                showToast={showToast}
+              />
+            )}
+            {view === 'hospital-recommendations' && (
+              <HospitalRecommendationsView
+                resultData={hospitalResultData}
+                onBack={goBack}
+                showToast={showToast}
+              />
+            )}
+
+            {view === 'dashboard' && (
+              <Dashboard
+                summaries={summaries}
+                user={user}
+                setView={goTo}
+                onSelectSummary={handleSelectSummary}
+              />
+            )}
+            {view === 'upload' && (
+              <UploadView
+                user={user}
+                onAnalysisComplete={handleAnalysisComplete}
+                showToast={showToast}
+              />
+            )}
+            {view === 'results' && currentId && (
+              <ResultsView
+                summaryId={currentId}
+                onBack={() => goTo('upload')}
+                onChat={() => { setChatSummaryId(currentId); goTo('chat') }}
+                onGraphics={(chartData, patientInfo, updatedReports) => {
+                  setGraphicsData(chartData)
+                  setGraphicsPatient(patientInfo)
+                  if (updatedReports) setGraphicsDashReports(updatedReports)
+                  goTo('graphics')
+                }}
+                onGraphicsDashboard={(reports) => {
+                  setGraphicsDashReports(reports)
+                  goTo('graphics-dashboard')
+                }}
+                user={user}
+              />
+            )}
+            {view === 'results' && !currentId && (
+              <div className={styles.viewInner}>
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>📋</div>
+                  <div className={styles.emptyLabel}>No report selected</div>
+                  <div className={styles.emptyDesc}>Select a report from the sidebar or analyze a new one.</div>
+                </div>
               </div>
-            </div>
-          )}
-          {view === 'chat' && (
-            <ChatView
-              user={user}
-              summaries={summaries}
-              initialSummaryId={chatSummaryId}
-            />
-          )}
-          {view === 'graphics' && graphicsData && (
-            <GraphicsView
-              chartData={graphicsData}
-              patientInfo={graphicsPatient}
-              onBack={() => goTo('results')}
-            />
-          )}
-          {view === 'graphics-dashboard' && (
-            <GraphicsDashboard
-              reports={graphicsDashReports}
-              onSelectReport={(chartData, patientInfo) => {
-                setGraphicsData(chartData)
-                setGraphicsPatient(patientInfo)
-                goTo('graphics')
-              }}
-              onGenerateNew={() => { }}
-              onBack={() => goTo('results')}
-              summaryId={currentId}
-              user={user}
-              onGraphics={(chartData, patientInfo, updatedReports) => {
-                setGraphicsData(chartData)
-                setGraphicsPatient(patientInfo)
-                if (updatedReports) setGraphicsDashReports(updatedReports)
-                goTo('graphics')
-              }}
-            />
-          )}
+            )}
+            {view === 'chat' && (
+              <ChatView
+                user={user}
+                summaries={summaries}
+                initialSummaryId={chatSummaryId}
+              />
+            )}
+            {view === 'graphics' && graphicsData && (
+              <GraphicsView
+                chartData={graphicsData}
+                patientInfo={graphicsPatient}
+                onBack={() => goTo('results')}
+              />
+            )}
+            {view === 'graphics-dashboard' && (
+              <GraphicsDashboard
+                reports={graphicsDashReports}
+                onSelectReport={(chartData, patientInfo) => {
+                  setGraphicsData(chartData)
+                  setGraphicsPatient(patientInfo)
+                  goTo('graphics')
+                }}
+                onGenerateNew={() => { }}
+                onBack={() => goTo('results')}
+                summaryId={currentId}
+                user={user}
+                onGraphics={(chartData, patientInfo, updatedReports) => {
+                  setGraphicsData(chartData)
+                  setGraphicsPatient(patientInfo)
+                  if (updatedReports) setGraphicsDashReports(updatedReports)
+                  goTo('graphics')
+                }}
+              />
+            )}
+          </ErrorBoundary>
         </div>
       </div>
 

@@ -479,6 +479,13 @@
   margin-bottom: 1.75rem;
 }
 
+.quickGrid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
 .quickCard {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2218,5 +2225,91 @@
 
   .barRow {
     grid-template-columns: 80px 1fr 30px;
+  }
+}
+
+/* ── Clinical Analysis Mobile Scale ── */
+.clinicalCardTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+.clinicalCardSubtitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.clinicalTextData {
+  font-size: 0.95rem;
+  color: var(--text-sec);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.clinicalSymptoms {
+  color: var(--text);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.clinicalLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mist);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.clinicalMeta {
+  font-size: 0.9rem;
+  color: var(--text-sec);
+  margin-top: 0.2rem;
+}
+
+.clinicalHighlight {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .clinicalCardTitle {
+    font-size: 1.05rem;
+  }
+
+  .clinicalCardSubtitle {
+    font-size: 0.95rem;
+  }
+
+  .clinicalTextData {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .clinicalSymptoms {
+    font-size: 0.85rem;
+  }
+
+  .clinicalLabel {
+    font-size: 0.75rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .clinicalMeta {
+    font-size: 0.8rem;
+  }
+
+  .clinicalHighlight {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
   }
 }
