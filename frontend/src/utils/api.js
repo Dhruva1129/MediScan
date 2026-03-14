@@ -82,4 +82,20 @@ export const api = {
 
   getGraphicsBySummary: (summaryId, userId) =>
     request(`/graphics-by-summary?summary_id=${summaryId}&user_id=${userId}`),
+
+  // Patient Condition
+  analyzePatientCondition: (formData) =>
+    request('/patient/patient-analyze', { method: 'POST', body: formData }),
+
+  getPatientHistory: (userId) => request(`/patient/history/${userId}`),
+
+  deletePatientHistory: (conditionId) =>
+    request(`/patient/history/${conditionId}`, { method: 'DELETE' }),
+
+  // Hospital Recommendations
+  getHospitalRecommendations: (formData) =>
+    request('/hospitals/recommend', { method: 'POST', body: formData }),
+
+  getHospitalDetail: (formData) =>
+    request('/hospitals/hospital-detail', { method: 'POST', body: formData }),
 }
