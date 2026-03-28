@@ -235,6 +235,20 @@
   animation: float 6s ease-in-out infinite 1.8s;
 }
 
+.cardHospital {
+  width: 280px;
+  top: 20px;
+  right: -10px;
+  animation: float 6s ease-in-out infinite 0.9s;
+}
+
+.cardChart {
+  width: 260px;
+  bottom: 30px;
+  left: 40px;
+  animation: float 6s ease-in-out infinite 2.7s;
+}
+
 .cardTopRow {
   display: flex;
   align-items: center;
@@ -460,6 +474,119 @@
   gap: 1.25rem;
 }
 
+/* ── Modules ── */
+.modules {
+  padding: 6rem 12rem;
+  background: var(--cream);
+}
+
+.modulesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.moduleCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all 0.22s;
+}
+
+.moduleCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.moduleCardTeal {
+  border-top: 3px solid var(--teal);
+}
+
+.moduleCardBlue {
+  border-top: 3px solid #3b5bdb;
+}
+
+.moduleCardAmber {
+  border-top: 3px solid var(--amber);
+}
+
+.moduleIconRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.moduleIconBig {
+  font-size: 2rem;
+}
+
+.moduleBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.65rem;
+  border-radius: 100px;
+}
+
+.moduleTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.moduleDesc {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: rgba(12, 15, 26, 0.58);
+  margin: 0;
+}
+
+.moduleList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.moduleList li {
+  font-size: 0.82rem;
+  color: rgba(12, 15, 26, 0.65);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.moduleBtn {
+  margin-top: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--teal);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.moduleBtn:hover {
+  filter: brightness(0.88);
+  transform: translateY(-1px);
+}
+
 .featureCard {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -663,8 +790,8 @@
 
 .footerInner {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 3rem;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2.5rem;
   margin-bottom: 2rem;
 }
 
@@ -764,6 +891,14 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .modules {
+    padding: 4rem 1.5rem;
+  }
+
+  .modulesGrid {
+    grid-template-columns: 1fr;
+  }
+
   .howSection {
     padding: 4rem 1.5rem;
   }
@@ -794,6 +929,17 @@
 
   .footerInner {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .cardHospital {
+    display: none;
+  }
+
+  .cardChart {
+    width: 280px;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .footerBottom {
