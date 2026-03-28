@@ -16,6 +16,7 @@ async def get_hospital_recommendations(location: str, doctor_type: str) -> str:
     payload = {
         "model": MODEL,
         "response_format": {"type": "json_object"},
+        "max_tokens": 4096,
         "messages": [
             {
                 "role": "user",
