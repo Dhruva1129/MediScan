@@ -50,12 +50,6 @@ export function HospitalForm({ user, initialData, onComplete, onBack, showToast 
 
     return (
         <div className={`${appStyles.viewInner} animate-fade-in`}>
-            {loading && (
-                <div className={appStyles.loadingOverlay}>
-                    <div className={appStyles.spinner} />
-                    <div style={{ fontWeight: 600, color: 'var(--ink)' }}>Searching for hospitals...</div>
-                </div>
-            )}
 
             <div className={`${styles.container} ${styles.animateIn}`}>
                 <div className={styles.header}>
@@ -99,6 +93,13 @@ export function HospitalForm({ user, initialData, onComplete, onBack, showToast 
                         {!loading && <span style={{ fontSize: '1.2rem' }}>→</span>}
                     </button>
                 </form>
+
+                {loading && (
+                    <div className={appStyles.loadingBottom}>
+                        <div className={appStyles.spinner} style={{ width: 24, height: 24 }} />
+                        <span>Searching for hospitals & specialists near you...</span>
+                    </div>
+                )}
             </div>
         </div>
     )
