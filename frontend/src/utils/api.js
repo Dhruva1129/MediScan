@@ -24,6 +24,19 @@ export const api = {
     return request('/signup/', { method: 'POST', body: fd })
   },
 
+  requestOtp: (email) => {
+    const fd = new FormData()
+    fd.append('email', email)
+    return request('/login/request-otp/', { method: 'POST', body: fd })
+  },
+
+  verifyOtp: (email, otp) => {
+    const fd = new FormData()
+    fd.append('email', email)
+    fd.append('otp', otp)
+    return request('/login/verify-otp/', { method: 'POST', body: fd })
+  },
+
   // Summaries
   analyzeImage: (file, prompt, userId) => {
     const fd = new FormData()

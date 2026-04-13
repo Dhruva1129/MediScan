@@ -259,6 +259,32 @@
   box-shadow: var(--shadow-sm);
 }
 
+.methodToggle {
+  display: flex;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  gap: 1.5rem;
+}
+
+.methodToggle button {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--mist);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.methodToggle button.methodActive {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+  font-weight: 600;
+}
+
 /* Form */
 .form {
   display: flex;
@@ -297,6 +323,28 @@
 }
 
 .field input::placeholder { color: #bbb8b0; }
+
+.fieldHint {
+  font-size: 0.72rem;
+  color: var(--mist);
+  margin: 0.2rem 0 0 0.1rem;
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  color: var(--mist);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  align-self: center;
+}
+
+.resendBtn:hover {
+  color: var(--teal);
+}
 
 .error {
   font-size: 0.8rem;
