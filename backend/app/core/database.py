@@ -2,6 +2,7 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
+import ssl
 
 load_dotenv()
 
@@ -9,7 +10,14 @@ load_dotenv()
 _raw_url = os.getenv("DATABASE_URL", "")
 DATABASE_URL = _raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(DATABASE_URL, echo=True, connect_args={"ssl": True})
+connect_args = {}
+if "localhost" not in DATABASE_URL:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    connect_args["ssl"] = ctx
+
+engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
 SessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 

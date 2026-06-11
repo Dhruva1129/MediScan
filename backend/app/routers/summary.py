@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
+import uuid
+from typing import Optional
 
 from app.services.groq_service import summarize_image_with_all_prompts
 from app.services.db_service import save_summary
@@ -46,10 +48,23 @@ async def get_ask_docter_response(summary_id: int, db: AsyncSession = Depends(ge
 async def summarize_image(
     image: UploadFile = File(...),
     prompt: str = Form(""),
-    user_id: int = Form(...)
+    user_id: int = Form(...),
+    session_id: Optional[str] = Form(None)
 ):
     try:
-        responses = await summarize_image_with_all_prompts(image, prompt)
+        if not session_id:
+            session_id = str(uuid.uuid4())
+
+        if image.filename.lower().endswith(".pdf") or image.content_type == "application/pdf":
+            from app.services.rag_service import add_pdf_to_vector_db
+            from app.services.groq_service import summarize_pdf_with_rag
+            img_bytes = await image.read()
+            await add_pdf_to_vector_db(img_bytes, user_id, session_id)
+            responses = await summarize_pdf_with_rag(user_id, session_id, prompt)
+        else:
+            responses = await summarize_image_with_all_prompts(image, prompt)
+            
+        responses["session_id"] = session_id
         summary = await save_summary(
             user_id,
             responses["user_prompt"],
