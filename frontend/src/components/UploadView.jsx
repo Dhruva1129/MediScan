@@ -6,18 +6,30 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
     const [file, setFile] = useState(null)
     const [prompt, setPrompt] = useState('')
     const [loading, setLoading] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const [uploaded, setUploaded] = useState(false)
+    const [uploadSessionId, setUploadSessionId] = useState(null)
     const [stepIdx, setStepIdx] = useState(-1)
     const [isDragOver, setIsDragOver] = useState(false)
     const fileInputRef = useRef()
 
     const STEPS = ['Reading document', 'Generating summary', 'Analyzing risks', 'Planning next steps']
 
+    const isPdf = (f) => f && (f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf')
+
     const pickFile = (f) => {
         if (!f) return
         setFile(f)
+        // Reset upload state when a new file is picked
+        setUploaded(false)
+        setUploadSessionId(null)
     }
 
-    const removeFile = () => setFile(null)
+    const removeFile = () => {
+        setFile(null)
+        setUploaded(false)
+        setUploadSessionId(null)
+    }
 
     const handleDrop = (e) => {
         e.preventDefault()
@@ -26,7 +38,53 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         if (f) pickFile(f)
     }
 
-    const handleAnalyze = async () => {
+    // Step 1: Upload PDF to ChromaDB (no LLM calls, fast)
+    const handleUpload = async () => {
+        if (!file) { showToast('Please select a file first', 'error'); return }
+        setUploading(true)
+        try {
+            const data = await api.uploadReport(file, user.id)
+            setUploadSessionId(data.session_id)
+            setUploaded(true)
+            showToast('Report uploaded successfully!', 'success')
+        } catch (err) {
+            showToast('Upload failed: ' + err.message, 'error')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    // Step 2: Analyze the uploaded PDF (queries ChromaDB + LLM)
+    const handleAnalyzePdf = async () => {
+        if (!uploadSessionId) { showToast('Please upload a report first', 'error'); return }
+        setLoading(true)
+        setStepIdx(0)
+
+        const timer = setInterval(() => {
+            setStepIdx(prev => (prev < STEPS.length - 1 ? prev + 1 : prev))
+        }, 3000)
+
+        try {
+            const data = await api.analyzeReport(uploadSessionId, prompt, user.id)
+            clearInterval(timer)
+            setStepIdx(STEPS.length)
+            setFile(null)
+            setPrompt('')
+            setUploaded(false)
+            setUploadSessionId(null)
+            showToast('Analysis complete!', 'success')
+            onAnalysisComplete(data)
+        } catch (err) {
+            clearInterval(timer)
+            showToast('Analysis failed: ' + err.message, 'error')
+        } finally {
+            setLoading(false)
+            setStepIdx(-1)
+        }
+    }
+
+    // Single-step flow for images (non-PDF)
+    const handleAnalyzeImage = async () => {
         if (!file) { showToast('Please select a file first', 'error'); return }
         setLoading(true)
         setStepIdx(0)
@@ -81,7 +139,10 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
                                 <div className={styles.filePreviewIcon}>📄</div>
                                 <div className={styles.filePreviewInfo}>
                                     <div className={styles.fileName}>{file.name}</div>
-                                    <div className={styles.fileSize}>{fmtBytes(file.size)}</div>
+                                    <div className={styles.fileSize}>
+                                        {fmtBytes(file.size)}
+                                        {uploaded && <span style={{ color: '#2a7a6f', marginLeft: '8px', fontWeight: 600 }}>✓ Uploaded</span>}
+                                    </div>
                                 </div>
                                 <button className={styles.removeFile} onClick={removeFile}>✕</button>
                             </div>
@@ -95,15 +156,29 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
                             placeholder="Optional: Add context (e.g. 'I'm 45 years old, what should I watch for?')"
                         />
 
-                        <button className={styles.analyzeBtn} onClick={handleAnalyze} disabled={!file}>
-                            🔍 Analyze Report
-                        </button>
+                        {isPdf(file) ? (
+                            /* Two-step flow for PDFs */
+                            !uploaded ? (
+                                <button className={styles.analyzeBtn} onClick={handleUpload} disabled={!file || uploading}>
+                                    {uploading ? '⏳ Uploading...' : '📤 Upload Report'}
+                                </button>
+                            ) : (
+                                <button className={styles.analyzeBtn} onClick={handleAnalyzePdf}>
+                                    🔍 Analyze Report
+                                </button>
+                            )
+                        ) : (
+                            /* Single-step flow for images */
+                            <button className={styles.analyzeBtn} onClick={handleAnalyzeImage} disabled={!file}>
+                                🔍 Analyze Report
+                            </button>
+                        )}
                     </>
                 ) : (
                     <div className={styles.progressCard}>
                         <div className={styles.spinner} />
                         <div className={styles.progressTitle}>Analyzing your report...</div>
-                        <div className={styles.progressSub}>This usually takes 20–40 seconds</div>
+                        <div className={styles.progressSub}>This usually takes 10–20 seconds</div>
                         <div className={styles.stepsList}>
                             {STEPS.map((s, i) => (
                                 <div key={i} className={`${styles.stepRow} ${i < stepIdx ? styles.stepDone : ''} ${i === stepIdx ? styles.stepLoading : ''}`}>
@@ -120,3 +195,4 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         </div>
     )
 }
+

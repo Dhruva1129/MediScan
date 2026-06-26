@@ -46,6 +46,22 @@ export const api = {
     return request('/summarize-image/', { method: 'POST', body: fd })
   },
 
+  // Two-step PDF flow
+  uploadReport: (file, userId) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    fd.append('user_id', userId)
+    return request('/upload-report/', { method: 'POST', body: fd })
+  },
+
+  analyzeReport: (sessionId, prompt, userId) => {
+    const fd = new FormData()
+    fd.append('session_id', sessionId)
+    fd.append('prompt', prompt)
+    fd.append('user_id', userId)
+    return request('/analyze-report/', { method: 'POST', body: fd })
+  },
+
   getUserSummaries: (userId) => request(`/user-summaries/${userId}`),
 
   deleteSummary: (summaryId) =>
