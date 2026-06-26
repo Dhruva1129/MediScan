@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     # Create all tables on startup (only creates if they don't exist)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("✅ Database tables created successfully!")
+    print("Database tables created successfully!")
     yield
 
 

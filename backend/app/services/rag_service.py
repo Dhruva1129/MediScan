@@ -62,3 +62,35 @@ async def query_vector_db(query: str, user_id: int, session_id: str, n_results: 
     # Join the retrieved chunks into a single string to use as context
     context_chunks = results['documents'][0]
     return "\n\n".join(context_chunks)
+
+async def get_all_pdf_documents(user_id: int, session_id: str, max_chars: int = 30000) -> str:
+    """Retrieves all chunks for a session from ChromaDB without semantic query/embeddings."""
+    results = collection.get(
+        where={"$and": [{"user_id": user_id}, {"session_id": session_id}]}
+    )
+    documents = results.get("documents", [])
+    if not documents:
+        return ""
+    
+    # Sort chunks by their id if they contain index, since IDs are user_id_session_id_i
+    def get_chunk_index(doc_id):
+        try:
+            return int(doc_id.split("_")[-1])
+        except Exception:
+            return 0
+            
+    # Zip IDs and documents, sort by ID index, then extract documents
+    zipped = list(zip(results.get("ids", []), documents))
+    zipped.sort(key=lambda x: get_chunk_index(x[0]))
+    
+    sorted_docs = [x[1] for x in zipped]
+    
+    # Join documents and limit to max_chars to prevent exceeding token limits
+    context = ""
+    for doc in sorted_docs:
+        if len(context) + len(doc) > max_chars:
+            break
+        context += doc + "\n\n"
+        
+    return context.strip()
+
