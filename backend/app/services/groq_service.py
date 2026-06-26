@@ -177,3 +177,32 @@ async def summarize_pdf_with_rag(user_id: int, session_id: str, user_text: str):
         "ask_docter_response": ask_doctor_response,
         "user_prompt": user_text
     }
+
+async def summarize_pdf_text_directly(pdf_text: str, user_text: str):
+    # Limit pdf_text to a safe character length to prevent exceeding token limits
+    context = pdf_text[:30000]
+    
+    # 1. Get initial summary response (sends full extracted text context)
+    summary_prompt = build_medical_report_prompt(user_text)
+    summary_response = await get_groq_rag_response(context, summary_prompt)
+
+    # 2. Create concurrent tasks for the remaining prompts using the summary_response as context
+    r_prompt = risk_prompt(summary_response, user_text)
+    n_prompt = next_steps_prompt(summary_response, user_text)
+    a_prompt = ask_doctor_prompt(summary_response, user_text)
+
+    risk_task = get_groq_rag_response(summary_response, r_prompt)
+    next_step_task = get_groq_rag_response(summary_response, n_prompt)
+    ask_doctor_task = get_groq_rag_response(summary_response, a_prompt)
+
+    risk_response, next_step_response, ask_doctor_response = await asyncio.gather(
+        risk_task, next_step_task, ask_doctor_task
+    )
+
+    return {
+        "summary_response": summary_response,
+        "risk_response": risk_response,
+        "next_step_response": next_step_response,
+        "ask_docter_response": ask_doctor_response,
+        "user_prompt": user_text
+    }

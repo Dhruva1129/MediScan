@@ -56,11 +56,11 @@ async def summarize_image(
             session_id = str(uuid.uuid4())
 
         if image.filename.lower().endswith(".pdf") or image.content_type == "application/pdf":
-            from app.services.rag_service import add_pdf_to_vector_db
-            from app.services.groq_service import summarize_pdf_with_rag
+            from app.services.rag_service import extract_text_from_pdf
+            from app.services.groq_service import summarize_pdf_text_directly
             img_bytes = await image.read()
-            await add_pdf_to_vector_db(img_bytes, user_id, session_id)
-            responses = await summarize_pdf_with_rag(user_id, session_id, prompt)
+            pdf_text = extract_text_from_pdf(img_bytes)
+            responses = await summarize_pdf_text_directly(pdf_text, prompt)
         else:
             responses = await summarize_image_with_all_prompts(image, prompt)
             
