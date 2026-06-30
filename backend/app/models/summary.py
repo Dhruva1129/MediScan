@@ -7,6 +7,17 @@ from app.core.database import Base
 from sqlalchemy import ForeignKey
 
 
+class DocumentChunk(Base):
+    """Stores PDF text chunks in PostgreSQL (replaces ChromaDB to avoid ONNX OOM on Render)."""
+    __tablename__ = "document_chunks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(String(36), index=True, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class Summary(Base):
     __tablename__ = "summaries"
     id = Column(Integer, primary_key=True, index=True)

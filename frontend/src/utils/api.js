@@ -54,11 +54,12 @@ export const api = {
     return request('/upload-report/', { method: 'POST', body: fd })
   },
 
-  analyzeReport: (sessionId, prompt, userId) => {
+  analyzeReport: (pdfText, prompt, userId, sessionId) => {
     const fd = new FormData()
-    fd.append('session_id', sessionId)
+    fd.append('pdf_text', pdfText)
     fd.append('prompt', prompt)
     fd.append('user_id', userId)
+    fd.append('session_id', sessionId)
     return request('/analyze-report/', { method: 'POST', body: fd })
   },
 
@@ -67,10 +68,7 @@ export const api = {
   deleteSummary: (summaryId) =>
     request(`/user-summaries/${summaryId}`, { method: 'DELETE' }),
 
-  getSummaryResponse: (id) => request(`/summary-response/${id}`),
-  getRiskResponse: (id) => request(`/risk-response/${id}`),
-  getNextStepResponse: (id) => request(`/next-step-response/${id}`),
-  getAskDoctorResponse: (id) => request(`/ask-docter-response/${id}`),
+  getSummaryDetails: (id) => request(`/summary-details/${id}`),
 
   // Followup
   followup: (summaryId, userText, userId, sessionId = null) => {

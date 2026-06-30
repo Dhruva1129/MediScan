@@ -42,19 +42,17 @@ export function ResultsView({ summaryId, onBack, onChat, onGraphics, onGraphicsD
         setData({ summary: null, risk: null, next: null, doctor: null })
         setTranslated(null)
         setTranslatedLang('')
-        Promise.all([
-            api.getSummaryResponse(summaryId),
-            api.getRiskResponse(summaryId),
-            api.getNextStepResponse(summaryId),
-            api.getAskDoctorResponse(summaryId),
-        ]).then(([s, r, n, d]) => {
+        api.getSummaryDetails(summaryId)
+        .then((res) => {
             setData({
-                summary: s.summary_response,
-                risk: r.risk_response,
-                next: n.next_step_response,
-                doctor: d.ask_docter_response,
+                summary: res.summary_response,
+                risk: res.risk_response,
+                next: res.next_step_response,
+                doctor: res.ask_docter_response,
             })
-        }).finally(() => setLoading(false))
+        })
+        .catch((e) => alert("Failed to load details: " + e.message))
+        .finally(() => setLoading(false))
     }, [summaryId])
 
     const handleTranslate = async (language) => {

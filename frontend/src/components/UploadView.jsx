@@ -9,6 +9,7 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
     const [uploading, setUploading] = useState(false)
     const [uploaded, setUploaded] = useState(false)
     const [uploadSessionId, setUploadSessionId] = useState(null)
+    const [pdfText, setPdfText] = useState(null)
     const [stepIdx, setStepIdx] = useState(-1)
     const [isDragOver, setIsDragOver] = useState(false)
     const fileInputRef = useRef()
@@ -23,12 +24,14 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         // Reset upload state when a new file is picked
         setUploaded(false)
         setUploadSessionId(null)
+        setPdfText(null)
     }
 
     const removeFile = () => {
         setFile(null)
         setUploaded(false)
         setUploadSessionId(null)
+        setPdfText(null)
     }
 
     const handleDrop = (e) => {
@@ -38,13 +41,14 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         if (f) pickFile(f)
     }
 
-    // Step 1: Upload PDF to ChromaDB (no LLM calls, fast)
+    // Step 1: Upload PDF to extract text statelessly (very fast)
     const handleUpload = async () => {
         if (!file) { showToast('Please select a file first', 'error'); return }
         setUploading(true)
         try {
             const data = await api.uploadReport(file, user.id)
             setUploadSessionId(data.session_id)
+            setPdfText(data.pdf_text)
             setUploaded(true)
             showToast('Report uploaded successfully!', 'success')
         } catch (err) {
@@ -54,9 +58,9 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         }
     }
 
-    // Step 2: Analyze the uploaded PDF (queries ChromaDB + LLM)
+    // Step 2: Analyze the uploaded PDF (sends text back to LLM)
     const handleAnalyzePdf = async () => {
-        if (!uploadSessionId) { showToast('Please upload a report first', 'error'); return }
+        if (!uploadSessionId || !pdfText) { showToast('Please upload a report first', 'error'); return }
         setLoading(true)
         setStepIdx(0)
 
@@ -65,13 +69,14 @@ export function UploadView({ user, onAnalysisComplete, showToast }) {
         }, 3000)
 
         try {
-            const data = await api.analyzeReport(uploadSessionId, prompt, user.id)
+            const data = await api.analyzeReport(pdfText, prompt, user.id, uploadSessionId)
             clearInterval(timer)
             setStepIdx(STEPS.length)
             setFile(null)
             setPrompt('')
             setUploaded(false)
             setUploadSessionId(null)
+            setPdfText(null)
             showToast('Analysis complete!', 'success')
             onAnalysisComplete(data)
         } catch (err) {

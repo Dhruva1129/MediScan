@@ -16,55 +16,39 @@ router = APIRouter()
 async def get_db():
     async with SessionLocal() as session:
         yield session
-@router.get("/summary-response/{summary_id}")
-async def get_summary_response(summary_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/summary-details/{summary_id}")
+async def get_summary_details(summary_id: int, db: AsyncSession = Depends(get_db)):
     summary = await db.get(Summary, summary_id)
     if not summary:
         raise HTTPException(status_code=404, detail="Summary not found")
-    return {"summary_response": summary.summary_response}
-
-@router.get("/risk-response/{summary_id}")
-async def get_risk_response(summary_id: int, db: AsyncSession = Depends(get_db)):
-    summary = await db.get(Summary, summary_id)
-    if not summary:
-        raise HTTPException(status_code=404, detail="Summary not found")
-    return {"risk_response": summary.risk_response}
-
-@router.get("/next-step-response/{summary_id}")
-async def get_next_step_response(summary_id: int, db: AsyncSession = Depends(get_db)):
-    summary = await db.get(Summary, summary_id)
-    if not summary:
-        raise HTTPException(status_code=404, detail="Summary not found")
-    return {"next_step_response": summary.next_step_response}
-
-@router.get("/ask-docter-response/{summary_id}")
-async def get_ask_docter_response(summary_id: int, db: AsyncSession = Depends(get_db)):
-    summary = await db.get(Summary, summary_id)
-    if not summary:
-        raise HTTPException(status_code=404, detail="Summary not found")
-    return {"ask_docter_response": summary.ask_docter_response}
+    return {
+        "summary_response": summary.summary_response,
+        "risk_response": summary.risk_response,
+        "next_step_response": summary.next_step_response,
+        "ask_docter_response": summary.ask_docter_response
+    }
 
 @router.post("/upload-report/")
 async def upload_report(
     image: UploadFile = File(...),
     user_id: int = Form(...)
 ):
-    """Step 1: Upload a PDF report — extracts text, chunks it, stores in ChromaDB. Fast response, no LLM calls."""
+    """Step 1: Upload a PDF report — extracts text and returns it. Stateless, no DB inserts, no LLM calls."""
     try:
         session_id = str(uuid.uuid4())
         img_bytes = await image.read()
+        pdf_text = ""
 
         if image.filename.lower().endswith(".pdf") or image.content_type == "application/pdf":
-            from app.services.rag_service import add_pdf_to_vector_db
-            await add_pdf_to_vector_db(img_bytes, user_id, session_id)
-        else:
-            # For images, no pre-processing needed — return session_id for analyze step
-            pass
+            from app.services.rag_service import extract_text_from_pdf
+            # Extract text and cap it at 30,000 characters to prevent excessive payloads
+            pdf_text = extract_text_from_pdf(img_bytes)[:30000]
 
         return {
             "session_id": session_id,
             "filename": image.filename,
             "content_type": image.content_type,
+            "pdf_text": pdf_text,
             "status": "uploaded"
         }
     except Exception as e:
@@ -74,21 +58,18 @@ async def upload_report(
 async def analyze_report(
     prompt: str = Form(""),
     user_id: int = Form(...),
-    session_id: str = Form(...)
+    session_id: str = Form(...),
+    pdf_text: str = Form("")
 ):
-    """Step 2: Analyze a previously uploaded report — queries ChromaDB for context, sends to LLM, returns analysis."""
+    """Step 2: Analyze a previously uploaded report — uses the provided text context, sends to LLM, returns analysis."""
     try:
-        from app.services.rag_service import get_all_pdf_documents
         from app.services.groq_service import summarize_pdf_text_directly
 
-        # Fetch all stored chunks for this session from ChromaDB
-        context = await get_all_pdf_documents(user_id, session_id)
+        if not pdf_text:
+            raise HTTPException(status_code=400, detail="No pdf_text provided for analysis.")
 
-        if not context:
-            raise HTTPException(status_code=404, detail="No uploaded document found for this session. Please upload a report first.")
-
-        # Summarize using the retrieved text context
-        responses = await summarize_pdf_text_directly(context, prompt)
+        # Summarize using the provided text context
+        responses = await summarize_pdf_text_directly(pdf_text, prompt)
 
         responses["session_id"] = session_id
         summary = await save_summary(
