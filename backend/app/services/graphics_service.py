@@ -1,14 +1,9 @@
 import os
 import json
-import aiohttp
 from dotenv import load_dotenv
+from app.services.gemini_client import call_gemini
 
 load_dotenv()
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_API_URL = os.getenv("GROQ_API_URL")
-TEXT_MODEL = os.getenv("GROQ_TEXT_MODEL", os.getenv("GROQ_MODEL", "llama3-8b-8192"))
-
 
 GRAPHICS_PROMPT_TEMPLATE = """
 You are a medical data visualization expert. Based on the patient details and medical report provided below, generate structured chart data as strict JSON. Do NOT include any text outside the JSON object.
@@ -53,7 +48,6 @@ RULES:
 - Use medically appropriate colors in risk_breakdown
 """
 
-
 async def generate_graphics_data(
     patient_name: str,
     patient_age: int,
@@ -64,7 +58,7 @@ async def generate_graphics_data(
     next_step_response: str,
     ask_docter_response: str,
 ) -> dict:
-    """Call Groq LLM to generate structured chart data from medical report."""
+    """Call Gemini to generate structured chart data from medical report."""
 
     prompt = GRAPHICS_PROMPT_TEMPLATE.format(
         name=patient_name,
@@ -77,27 +71,11 @@ async def generate_graphics_data(
         ask_doctor=ask_docter_response or "",
     )
 
-    payload = {
-        "model": TEXT_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
-    }
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    raw = await call_gemini(prompt=prompt, json_mode=True)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
-            if resp.status != 200:
-                raise Exception(f"Groq API error: {resp.status} {await resp.text()}")
-            result = await resp.json()
-            raw = result["choices"][0]["message"]["content"]
-
-    # Extract JSON — LLM might wrap it in ```json ... ```
+    # Extract JSON — in case it contains markdown code fences
     raw = raw.strip()
     if raw.startswith("```"):
-        # Remove markdown code fences
         lines = raw.split("\n")
         lines = [l for l in lines if not l.strip().startswith("```")]
         raw = "\n".join(lines)
