@@ -238,10 +238,10 @@ export default function AuthPage() {
               ) : (
                 <form className={styles.form} onSubmit={handleLogin}>
                   <div className={styles.field}>
-                    <label>Username</label>
+                    <label>Username or Email</label>
                     <input
                       type="text"
-                      placeholder="your_username"
+                      placeholder="username or email"
                       value={loginForm.username}
                       onChange={e => setLoginForm(f => ({ ...f, username: e.target.value }))}
                       autoComplete="username"
