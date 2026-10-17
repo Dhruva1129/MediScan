@@ -3,6 +3,8 @@ from app.core.database import SessionLocal
 from app.models.user import User
 from app.models.user_otp import UserOTP
 from sqlalchemy.future import select
+from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 import secrets
 import aiosmtplib
 import os
@@ -20,16 +22,33 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def create_user(username: str, email: str, password: str):
     async with SessionLocal() as session:
-        hashed_password = get_password_hash(password)
-        user = User(username=username, email=email, hashed_password=hashed_password)
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-        return user
+        # Check if email already exists
+        res_email = await session.execute(select(User).where(User.email == email))
+        if res_email.scalars().first():
+            raise ValueError("An account with this email already exists. Please sign in instead.")
+
+        # Check if username already exists
+        res_user = await session.execute(select(User).where(User.username == username))
+        if res_user.scalars().first():
+            raise ValueError("This username is already taken. Please choose another username.")
+
+        try:
+            hashed_password = get_password_hash(password)
+            user = User(username=username, email=email, hashed_password=hashed_password)
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except IntegrityError:
+            await session.rollback()
+            raise ValueError("An account with this email or username already exists. Please sign in instead.")
 
 async def authenticate_user(username: str, password: str):
     async with SessionLocal() as session:
-        result = await session.execute(select(User).where(User.username == username))
+        # Support logging in with either username or email
+        result = await session.execute(
+            select(User).where(or_(User.username == username, User.email == username))
+        )
         user = result.scalars().first()
         if user and verify_password(password, user.hashed_password):
             return user

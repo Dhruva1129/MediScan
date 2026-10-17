@@ -12,8 +12,10 @@ async def signup(
     try:
         user = await create_user(username, email, password)
         return {"id": user.id, "username": user.username, "email": user.email}
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Could not create account. Please try again.")
 
 @router.post("/login/")
 async def login(
@@ -22,7 +24,7 @@ async def login(
 ):
     user = await authenticate_user(username, password)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid username/email or password")
     return {"id": user.id, "username": user.username, "email": user.email}
 
 @router.post("/login/request-otp/")

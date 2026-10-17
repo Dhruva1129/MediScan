@@ -1,3 +1,16 @@
+import os
+import sys
+
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    for p in sys.path:
+        cand = os.path.join(p, "pymupdf")
+        if os.path.isdir(cand):
+            try:
+                os.add_dll_directory(cand)
+                break
+            except Exception:
+                pass
+
 import base64
 import fitz
 import asyncio

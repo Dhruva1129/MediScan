@@ -1,4 +1,17 @@
 import os
+import sys
+
+# Ensure PyMuPDF (mupdf) C-library directory is registered on Windows (Python 3.8+)
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    for p in sys.path:
+        cand = os.path.join(p, "pymupdf")
+        if os.path.isdir(cand):
+            try:
+                os.add_dll_directory(cand)
+                break
+            except Exception:
+                pass
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
